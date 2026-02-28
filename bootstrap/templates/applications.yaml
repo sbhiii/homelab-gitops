@@ -1,34 +1,25 @@
-{{- range .Values.applications }}
----
+{{- range .Values.apps }}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: {{ .name }}
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: {{ .syncWave | default "0" | quote }}
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: homelab
+  project: default
   source:
-    repoURL: {{ $.Values.spec.source.repoURL }}
-    targetRevision: {{ $.Values.spec.source.targetRevision }}
+    repoURL: https://github.com/SamyBahi/homelab-gitops.git
+    targetRevision: HEAD
     path: {{ .path }}
   destination:
-    server: {{ $.Values.spec.destination.server }}
-    namespace: {{ .namespace | default .name }}
+    server: https://kubernetes.default.svc
+    namespace: {{ .namespace | default "default" }}
   syncPolicy:
     automated:
-      prune: true        # Supprime les ressources orphelines
-      selfHeal: true      # Corrige les drifts automatiquement
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true
-    retry:
-      limit: 5
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
+---
 {{- end }}
