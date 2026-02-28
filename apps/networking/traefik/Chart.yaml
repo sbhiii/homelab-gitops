@@ -1,0 +1,10 @@
+# apps/networking/traefik/Chart.yaml
+apiVersion: v2
+name: traefik-wrapper
+description: Wrapper pour le chart officiel Traefik
+type: application
+version: 1.0.0
+dependencies:
+  - name: traefik
+    version: 39.0.2 # Version actuelle du chart
+    repository: https://traefik.github.io/charts

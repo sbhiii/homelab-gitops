@@ -1,0 +1,29 @@
+# apps/networking/traefik/values.yaml
+traefik:
+  providers:
+    kubernetesCRD:
+      enabled: true
+    kubernetesIngress:
+      enabled: true
+      publishedService:
+        enabled: false # On désactive la publication du service externe car on est en hostNetwork
+
+  ports:
+    web:
+      port: 8000
+      expose: true
+      exposedPort: 80
+      protocol: TCP
+    websecure:
+      port: 8443
+      expose: true
+      exposedPort: 443
+      protocol: TCP
+
+  deployment:
+    kind: Deployment
+    # C'est LA ligne qui permet à Traefik de capter le trafic de ton firewall Hetzner
+    hostNetwork: true
+
+  service:
+    enabled: false # Plus besoin de service LoadBalancer/NodePort, Traefik écoute sur l'hôte

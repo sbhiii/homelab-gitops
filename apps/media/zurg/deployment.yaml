@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zurg
+  namespace: media
+  labels:
+    app: zurg
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # Important : la BDD SQLite de Zurg n'aime pas les accès concurrents
+  selector:
+    matchLabels:
+      app: zurg
+  template:
+    metadata:
+      labels:
+        app: zurg
+    spec:
+      containers:
+        - name: zurg
+          # Image maintenue par la communauté DebridMediaManager, la plus stable
+          image: ghcr.io/debridmediamanager/zurg-testing:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9999
+          env:
+            - name: ZURG_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: realdebrid-secret # Le secret qu'on va créer
+                  key: token
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yml
+              subPath: config.yml
+              readOnly: true
+            - name: data
+              mountPath: /app/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: zurg-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: zurg-data
