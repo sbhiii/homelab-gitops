@@ -1,24 +1,13 @@
-spec:
-  destination:
-    server: https://kubernetes.default.svc
-  source:
-    repoURL: https://github.com/<TON_USER>/homelab-gitops.git
-    targetRevision: main
-
-applications:
+apps:
+  - name: traefik
+    path: apps/networking/traefik
+    namespace: kube-system # On le remet là où il était, par convention
+  - name: cert-manager
+    path: apps/networking/cert-manager
+    namespace: cert-manager
+  - name: zurg-realdebrid
+    path: apps/media/zurg
+    namespace: media
   - name: jellyfin
+    path: apps/media/jellyfin
     namespace: media
-    path: apps/jellyfin
-    syncWave: "2"
-
-  - name: zurg
-    namespace: media
-    path: apps/zurg
-    syncWave: "1"
-
-  - name: rclone
-    namespace: media
-    path: apps/rclone
-    syncWave: "1"
-
-  # Add future apps here
