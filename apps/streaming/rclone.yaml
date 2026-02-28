@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: rclone
+  namespace: streaming
+  labels:
+    app: rclone
+spec:
+  selector:
+    matchLabels:
+      app: rclone
+  template:
+    metadata:
+      labels:
+        app: rclone
+    spec:
+      containers:
+        - name: rclone
+          image: rclone/rclone:latest
+          securityContext:
+            privileged: true
+          command: ["rclone", "mount"]
+          args:
+            - "zurg:"
+            - "/data"
+            - "--config=/config/rclone.conf"
+            - "--allow-other"
+            - "--vfs-cache-mode=full"
+            - "--dir-cache-time=10s"
+          volumeMounts:
+            - name: rclone-config
+              mountPath: /config
+            - name: media-mount
+              mountPath: /data
+              mountPropagation: Bidirectional
+      volumes:
+        - name: rclone-config
+          configMap:
+            name: rclone-config
+        - name: media-mount
+          hostPath:
+            path: /var/mnt/streaming
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rclone-config
+  namespace: streaming
+data:
+  rclone.conf: |
+    [zurg]
+    type = webdav
+    url = http://zurg:9999/dav/
+    vendor = other
