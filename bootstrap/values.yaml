@@ -1,0 +1,24 @@
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/<TON_USER>/homelab-gitops.git
+    targetRevision: main
+
+applications:
+  - name: jellyfin
+    namespace: media
+    path: apps/jellyfin
+    syncWave: "2"
+
+  - name: zurg
+    namespace: media
+    path: apps/zurg
+    syncWave: "1"
+
+  - name: rclone
+    namespace: media
+    path: apps/rclone
+    syncWave: "1"
+
+  # Add future apps here
