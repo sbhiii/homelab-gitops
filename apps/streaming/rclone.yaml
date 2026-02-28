@@ -25,6 +25,7 @@ spec:
             - "/data"
             - "--config=/config/rclone.conf"
             - "--allow-other"
+            - "--allow-non-empty"
             - "--vfs-cache-mode=full"
             - "--dir-cache-time=10s"
           volumeMounts:
