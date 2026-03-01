@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-web # Le nom de ton déploiement
+spec:
+  replicas: 1 # On lance 1 seul exemplaire (Pod)
+  template:
+    spec:
+      containers:
+        - name: nginx
+          image: nginxdemos/hello:plain-text
+          ports:
+            - containerPort: 80 # Le port sur lequel le conteneur écoute

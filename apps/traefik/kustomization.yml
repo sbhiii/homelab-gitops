@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - https://traefik.github.io/charts
+
+helmCharts:
+  - name: traefik
+    releaseName: traefik
+    version: 39.0.2
+    repo: https://traefik.github.io/charts
+    namespace: traefik
+    # C'est ici que tu personnalises Traefik sans toucher au code source
+    valuesInline:
+      deployment:
+        kind: Deployment
+      service:
+        type: ClusterIP # On n'utilise plus le type LoadBalancer ici
+      ports:
+        web:
+          hostPort: 80 # <--- Magie : Lie le port 80 du container au port 80 du serveur
+        websecure:
+          hostPort: 443 # <--- Magie : Idem pour le 443
+      ingressClass:
+        enabled: true
+        isDefaultClass: true
