@@ -12,9 +12,11 @@ helmCharts:
     namespace: traefik
     # C'est ici que tu personnalises Traefik sans toucher au code source
     valuesInline:
-      additionalArguments:
-        - "--api.insecure=true" # Active le dashboard sans authentification (pour le test)
-        - "--api.dashboard=true"
+      installCRDs: true
+      # --- AJOUTE CE BLOC ICI ---
+      api:
+        dashboard: true
+        insecure: true # Permet d'accéder au dashboard sans configuration complexe
       deployment:
         kind: Deployment
       service:
