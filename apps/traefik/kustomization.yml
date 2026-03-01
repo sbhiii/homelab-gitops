@@ -3,8 +3,6 @@ kind: Kustomization
 
 resources:
   - namespace.yml
-  # Laisse ton Ingress commenté pour l'instant, on va vérifier le port-forward d'abord
-  # - dashboard-ingress.yml
 
 helmCharts:
   - name: traefik
@@ -12,11 +10,22 @@ helmCharts:
     version: 39.0.2
     repo: https://traefik.github.io/charts
     namespace: traefik
-    includeCRDs: true # LA VRAIE CLÉ EST ICI (Niveau Kustomize)
-    valuesInline: # Niveau Helm
+    includeCRDs: true
+    valuesInline:
       api:
         dashboard: true
-        insecure: true
+        insecure: false # Fini les bugs de port 8080/9000
+
+      # --- LA MAGIE EST ICI ---
+      # Helm va créer la route automatiquement sur ton port 80
+      ingressRoute:
+        dashboard:
+          enabled: true
+          matchRule: PathPrefix(`/api`) || PathPrefix(`/dashboard`)
+          entryPoints:
+            - web
+      # ------------------------
+
       deployment:
         kind: Deployment
       service:
