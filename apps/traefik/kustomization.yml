@@ -17,7 +17,7 @@ helmCharts:
     valuesInline:
       api:
         dashboard: true
-        insecure: false
+        insecure: true
       ingressRoute:
         dashboard:
           enabled: false # On désactive leur truc, on gère ça nous-mêmes

@@ -5,5 +5,5 @@ metadata:
   namespace: traefik
 spec:
   basicAuth:
-    secret: traefik-dashboard-auth
+    secret: basic-auth-secret
     removeHeader: true
