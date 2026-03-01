@@ -7,7 +7,6 @@ metadata:
     cert-manager.io/cluster-issuer: "letsencrypt-route53"
     traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    # On applique notre videur Basic Auth
     traefik.ingress.kubernetes.io/router.middlewares: traefik-basic-auth@kubernetescrd
 spec:
   tls:
@@ -24,11 +23,11 @@ spec:
               service:
                 name: traefik
                 port:
-                  number: 9000 # Le port API interne de Traefik
+                  number: 8080
           - path: /dashboard
             pathType: Prefix
             backend:
               service:
                 name: traefik
                 port:
-                  number: 9000
+                  number: 8080
