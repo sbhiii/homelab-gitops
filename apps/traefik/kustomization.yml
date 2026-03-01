@@ -3,29 +3,29 @@ kind: Kustomization
 
 resources:
   - namespace.yml
+  # - dashboard-ingress.yml
 
 helmCharts:
   - name: traefik
     releaseName: traefik
-    version: 39.0.2
+    version: 33.0.0 # On reste sur la 33 ou 39, mais avec les bonnes valeurs
     repo: https://traefik.github.io/charts
     namespace: traefik
-    # C'est ici que tu personnalises Traefik sans toucher au code source
     valuesInline:
-      installCRDs: true
-      # --- AJOUTE CE BLOC ICI ---
+      # On retire installCRDs d'ici car le chart ne le reconnaît pas à cet endroit
       api:
+        enabled: true # Attention: c'est souvent 'enabled' maintenant
         dashboard: true
-        insecure: true # Permet d'accéder au dashboard sans configuration complexe
+        insecure: true
       deployment:
         kind: Deployment
       service:
-        type: ClusterIP # On n'utilise plus le type LoadBalancer ici
+        type: ClusterIP
       ports:
         web:
-          hostPort: 80 # <--- Magie : Lie le port 80 du container au port 80 du serveur
+          hostPort: 80
         websecure:
-          hostPort: 443 # <--- Magie : Idem pour le 443
+          hostPort: 443
       ingressClass:
         enabled: true
         isDefaultClass: true
