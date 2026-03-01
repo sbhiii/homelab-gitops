@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-html
+  namespace: default
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <title>Mon Cluster K3s</title>
+    </head>
+    <body class="bg-slate-900 text-white flex items-center justify-center h-screen">
+        <div class="p-8 bg-slate-800 rounded-2xl shadow-2xl border border-blue-500/30 text-center max-w-lg">
+            <div class="text-5xl mb-4">🚀</div>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                Cluster K3s Opérationnel
+            </h1>
+            <p class="mt-4 text-slate-400">
+                Félicitations ! Traefik route maintenant tes requêtes vers ce conteneur Nginx personnalisé via GitOps.
+            </p>
+            <div class="mt-6 flex gap-2 justify-center">
+                <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm border border-blue-500/50">ArgoCD</span>
+                <span class="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-sm border border-orange-500/50">Traefik</span>
+                <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm border border-green-500/50">K3s</span>
+            </div>
+        </div>
+    </body>
+    </html>
