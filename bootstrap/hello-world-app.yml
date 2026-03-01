@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hello-world-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/SamyBahi/homelab-gitops.git"
+    path: apps/hello-world
+    targetRevision: HEAD
+  destination:
+    namespace: hello-world
+    server: "https://kubernetes.default.svc"
+  syncOptions:
+    - CreateNamespace=true

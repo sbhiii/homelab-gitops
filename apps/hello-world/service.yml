@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-svc # C'est ce NOM que l'Ingress va appeler
+spec:
+  ports:
+    - port: 80 # Port exposé par le service
+      targetPort: 80 # Port vers lequel il renvoie (celui du conteneur)
