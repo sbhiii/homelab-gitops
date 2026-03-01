@@ -3,10 +3,8 @@ kind: Service
 metadata:
   name: hello-svc
 spec:
-  # --- IL MANQUAIT CE BLOC ---
   selector:
     app: hello-world
-  # ---------------------------
   ports:
     - port: 80
       targetPort: 80
