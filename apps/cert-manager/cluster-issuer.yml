@@ -4,15 +4,15 @@ metadata:
   name: letsencrypt-route53
 spec:
   acme:
-    email: ton-email@gmail.com
+    email: ton-email@gmail.com # Reçoit les alertes d'expiration
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-route53-account-key
     solvers:
       - dns01:
           route53:
-            region: us-east-1 # Ou la tienne
-            accessKeyID: VOTRE_ACCESS_KEY_ID_IAM
+            region: eu-west-1 # Ou ta région AWS
+            accessKeyID: AKIA2V4UK4CHDHKFEBOC # Ton ACCESS KEY ID (en clair)
             secretAccessKeySecretRef:
-              name: aws-route53-credentials
+              name: aws-route53-credentials # Le nom du secret déchiffré par Sealed Secrets
               key: secret-access-key
