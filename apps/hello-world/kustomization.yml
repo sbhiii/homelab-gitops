@@ -5,10 +5,12 @@ namespace: hello-world
 
 resources:
   - namespace.yml
+  - sealed-auth-secret.yml
   - deployment.yml
   - service.yml
   - ingress.yml
   - configmap.yml
+  - middleware-auth.yml
 
 commonLabels:
   app: hello-world
