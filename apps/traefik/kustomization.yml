@@ -31,7 +31,8 @@ helmCharts:
         websecure:
           hostPort: 443
         traefik:
-          expose: true # Indispensable : ouvre le port 9000 sur le Service K8s
+          expose:
+            default: true
       ingressClass:
         enabled: true
         isDefaultClass: true
