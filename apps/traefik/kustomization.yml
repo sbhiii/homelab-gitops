@@ -8,7 +8,7 @@ resources:
 helmCharts:
   - name: traefik
     releaseName: traefik
-    version: 33.0.0 # On reste sur la 33 ou 39, mais avec les bonnes valeurs
+    version: 39.0.2 # On reste sur la 33 ou 39, mais avec les bonnes valeurs
     repo: https://traefik.github.io/charts
     namespace: traefik
     valuesInline:
