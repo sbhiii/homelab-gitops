@@ -3,6 +3,9 @@ kind: Kustomization
 
 resources:
   - namespace.yml
+  - sealed-auth-secret.yml
+  - middleware-auth.yml
+  - ingress.yml # On utilise un Ingress standard, comme pour le reste !
 
 helmCharts:
   - name: traefik
@@ -14,18 +17,10 @@ helmCharts:
     valuesInline:
       api:
         dashboard: true
-        insecure: false # Fini les bugs de port 8080/9000
-
-      # --- LA MAGIE EST ICI ---
-      # Helm va créer la route automatiquement sur ton port 80
+        insecure: false
       ingressRoute:
         dashboard:
-          enabled: true
-          matchRule: PathPrefix(`/api`) || PathPrefix(`/dashboard`)
-          entryPoints:
-            - web
-      # ------------------------
-
+          enabled: false # On désactive leur truc, on gère ça nous-mêmes
       deployment:
         kind: Deployment
       service:
@@ -35,6 +30,8 @@ helmCharts:
           hostPort: 80
         websecure:
           hostPort: 443
+        traefik:
+          expose: true # Indispensable : ouvre le port 9000 sur le Service K8s
       ingressClass:
         enabled: true
         isDefaultClass: true

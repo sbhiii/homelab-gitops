@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: traefik-dashboard-ingress
+  namespace: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-route53"
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # On applique notre videur Basic Auth
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-basic-auth@kubernetescrd
+spec:
+  tls:
+    - hosts:
+        - traefik.dev.homelab.sawyy.com
+      secretName: traefik-dashboard-tls
+  rules:
+    - host: traefik.dev.homelab.sawyy.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: traefik
+                port:
+                  number: 9000 # Le port API interne de Traefik
+          - path: /dashboard
+            pathType: Prefix
+            backend:
+              service:
+                name: traefik
+                port:
+                  number: 9000
