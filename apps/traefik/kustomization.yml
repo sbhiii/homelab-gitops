@@ -3,18 +3,18 @@ kind: Kustomization
 
 resources:
   - namespace.yml
+  # Laisse ton Ingress commenté pour l'instant, on va vérifier le port-forward d'abord
   # - dashboard-ingress.yml
 
 helmCharts:
   - name: traefik
     releaseName: traefik
-    version: 39.0.2 # On reste sur la 33 ou 39, mais avec les bonnes valeurs
+    version: 39.0.2
     repo: https://traefik.github.io/charts
     namespace: traefik
-    valuesInline:
-      # On retire installCRDs d'ici car le chart ne le reconnaît pas à cet endroit
+    includeCRDs: true # LA VRAIE CLÉ EST ICI (Niveau Kustomize)
+    valuesInline: # Niveau Helm
       api:
-        enabled: true # Attention: c'est souvent 'enabled' maintenant
         dashboard: true
         insecure: true
       deployment:
