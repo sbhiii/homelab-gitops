@@ -2,6 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: hello-ingress
+  namespace: hello-world
   annotations:
     # On précise à Kubernetes que c'est Traefik qui gère cette règle
     kubernetes.io/ingress.class: traefik
