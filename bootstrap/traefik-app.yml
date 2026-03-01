@@ -12,5 +12,10 @@ spec:
   destination:
     server: "https://kubernetes.default.svc"
     namespace: traefik
-  syncOptions:
-    - CreateNamespace=true
+  # --- LA CORRECTION EST ICI ---
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true # Indique à ArgoCD de créer le namespace 'traefik'
