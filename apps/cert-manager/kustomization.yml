@@ -5,8 +5,8 @@ namespace: cert-manager
 
 resources:
   - namespace.yml
-  - cluster-issuer.yml
   - sealed-secret.yml
+  - cluster-issuer.yml
 
 helmCharts:
   - name: cert-manager
