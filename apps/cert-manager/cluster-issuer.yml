@@ -4,15 +4,18 @@ metadata:
   name: letsencrypt-route53
 spec:
   acme:
-    email: ton-email@gmail.com # Reçoit les alertes d'expiration
+    email: admin@sbhi.io # Reçoit les alertes d'expiration
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-route53-account-key
     solvers:
       - dns01:
           route53:
-            region: eu-west-1 # Ou ta région AWS
-            accessKeyID: AKIA_REDACTED # Ton ACCESS KEY ID (en clair)
-            secretAccessKeySecretRef:
-              name: aws-route53-credentials # Le nom du secret déchiffré par Sealed Secrets
-              key: secret-access-key
+            region: eu-west-1
+            # Renseigné explicitement : évite route53:ListHostedZonesByName
+            hostedZoneID: Z0304289A7179QHW2L9V
+            role: arn:aws:iam::734213628046:role/cert-manager-route53
+            auth:
+              kubernetes:
+                serviceAccountRef:
+                  name: cert-manager
