@@ -10,10 +10,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - argocd.dev.homelab.sawyy.com
+        - argocd.srehomelab.sbhi.io
       secretName: argocd-server-tls # Cert-Manager créera ce certificat
   rules:
-    - host: argocd.dev.homelab.sawyy.com
+    - host: argocd.srehomelab.sbhi.io
       http:
         paths:
           - path: /
