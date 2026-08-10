@@ -3,9 +3,6 @@ kind: Kustomization
 
 resources:
   - namespace.yml
-  - sealed-auth-secret.yml
-  - middleware-auth.yml
-  - ingress.yml # On utilise un Ingress standard, comme pour le reste !
   - networkpolicy.yml
 
 helmCharts:
@@ -17,11 +14,17 @@ helmCharts:
     includeCRDs: true
     valuesInline:
       api:
+        # Dashboard accessible UNIQUEMENT via port-forward :
+        #   kubectl port-forward -n traefik deploy/traefik 9000:9000
+        # Il n'est plus exposé par un Ingress. L'authentification basic passait
+        # par un SealedSecret, or le contrôleur sealed-secrets n'est plus
+        # installable (dépôt de chart en 404). Exposer le dashboard sans
+        # authentification révélerait toutes les routes et services du cluster.
         dashboard: true
         insecure: true
       ingressRoute:
         dashboard:
-          enabled: false # On désactive leur truc, on gère ça nous-mêmes
+          enabled: false # Pas d'exposition publique du dashboard
       deployment:
         kind: Deployment
       service:
