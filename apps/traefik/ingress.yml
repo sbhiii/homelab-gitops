@@ -11,10 +11,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - traefik.dev.homelab.sawyy.com
+        - traefik.srehomelab.sbhi.io
       secretName: traefik-dashboard-tls
   rules:
-    - host: traefik.dev.homelab.sawyy.com
+    - host: traefik.srehomelab.sbhi.io
       http:
         paths:
           - path: /api

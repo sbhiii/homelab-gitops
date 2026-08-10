@@ -1,0 +1,20 @@
+# Le service de métadonnées Hetzner sert le user_data sans authentification,
+# lequel contient la clé de signature des tokens. Aucun pod n'a besoin de
+# l'atteindre.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-metadata-service
+  namespace: argocd
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32
+    - to:
+        - namespaceSelector: {}

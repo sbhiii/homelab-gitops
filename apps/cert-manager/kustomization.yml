@@ -7,6 +7,7 @@ resources:
   - namespace.yml
   - cluster-issuer.yml
   - rbac.yml
+  - networkpolicy.yml
 
 helmCharts:
   - name: cert-manager
