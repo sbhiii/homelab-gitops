@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: "https://github.com/SamyBahi/homelab-gitops.git"
+    repoURL: "https://github.com/sbhiii/sre-homelab-gitops.git"
     targetRevision: HEAD
     path: apps/traefik
   destination:
