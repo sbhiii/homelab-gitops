@@ -6,6 +6,7 @@ resources:
   - sealed-auth-secret.yml
   - middleware-auth.yml
   - ingress.yml # On utilise un Ingress standard, comme pour le reste !
+  - networkpolicy.yml
 
 helmCharts:
   - name: traefik
