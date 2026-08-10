@@ -1,6 +1,25 @@
 # Le service de métadonnées Hetzner sert le user_data sans authentification,
 # lequel contient la clé de signature des tokens. Aucun pod n'a besoin de
 # l'atteindre.
+#
+# Portée : cette policy s'applique par namespace. Les namespaces qui n'ont
+# pas leur propre copie (default, kube-system, ou tout nouveau namespace
+# créé plus tard) restent exposés au service de métadonnées. kube-system
+# est délibérément exclu : il héberge CoreDNS, metrics-server et
+# local-path-provisioner, et une règle d'egress mal calibrée là-bas
+# pourrait casser CoreDNS et mettre le cluster à terre. Tout nouveau
+# namespace doit recevoir sa propre copie de cette policy.
+#
+# IPv4 uniquement : l'ipBlock ne couvre que 0.0.0.0/0. Les pods du cluster
+# sont IPv4 uniquement aujourd'hui, donc c'est correct en l'état. Le
+# datasource cloud-init de Hetzner essaie d'abord l'adresse IPv6
+# fe80::a9fe:a9fe avant l'IPv4 : le chemin IPv6 existe donc réellement,
+# simplement inatteignable depuis les pods de ce cluster pour l'instant.
+# Cette policy bascule le namespace en default-deny egress, donc un futur
+# passage en dual-stack (podCIDRs gagnant une plage IPv6) n'exposerait pas
+# le service de métadonnées : le trafic IPv6 serait bloqué par défaut, y
+# compris le trafic légitime, ce qui apparaîtrait comme des échecs IPv6
+# mystérieux sans lien apparent. À revoir si podCIDRs gagne une plage IPv6.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
