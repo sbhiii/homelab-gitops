@@ -1,9 +1,0 @@
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: basic-auth
-  namespace: hello-world
-spec:
-  basicAuth:
-    secret: basic-auth-secret # Le nom du secret qu'on vient de sceller
-    removeHeader: true # Sécurité : évite de fuiter le header d'auth vers l'application
