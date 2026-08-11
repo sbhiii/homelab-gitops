@@ -25,7 +25,7 @@ helmCharts:
         insecure: true
       ingressRoute:
         dashboard:
-          enabled: false # Pas d'exposition publique du dashboard
+          enabled: false # no public exposure of the dashboard
       deployment:
         kind: Deployment
       service:
