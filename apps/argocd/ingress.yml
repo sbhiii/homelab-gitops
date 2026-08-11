@@ -11,7 +11,7 @@ spec:
   tls:
     - hosts:
         - argocd.srehomelab.sbhi.io
-      secretName: argocd-server-tls # Cert-Manager créera ce certificat
+      secretName: argocd-server-tls # cert-manager will create this certificate
   rules:
     - host: argocd.srehomelab.sbhi.io
       http:
@@ -22,4 +22,4 @@ spec:
               service:
                 name: argocd-server
                 port:
-                  number: 80 # ArgoCD écoute sur le 80 grâce au flag --insecure
+                  number: 80 # ArgoCD listens on 80 thanks to the --insecure flag

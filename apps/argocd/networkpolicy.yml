@@ -1,25 +1,22 @@
-# Le service de métadonnées Hetzner sert le user_data sans authentification,
-# lequel contient la clé de signature des tokens. Aucun pod n'a besoin de
-# l'atteindre.
+# The Hetzner metadata service serves user_data without authentication, and that
+# user_data contains the token-signing key. No pod needs to reach it.
 #
-# Portée : cette policy s'applique par namespace. Les namespaces qui n'ont
-# pas leur propre copie (default, kube-system, ou tout nouveau namespace
-# créé plus tard) restent exposés au service de métadonnées. kube-system
-# est délibérément exclu : il héberge CoreDNS, metrics-server et
-# local-path-provisioner, et une règle d'egress mal calibrée là-bas
-# pourrait casser CoreDNS et mettre le cluster à terre. Tout nouveau
-# namespace doit recevoir sa propre copie de cette policy.
+# Scope: this policy applies per namespace. Namespaces without their own copy
+# (default, kube-system, or any namespace created later) remain exposed to the
+# metadata service. kube-system is deliberately excluded: it hosts CoreDNS,
+# metrics-server and local-path-provisioner, and a badly calibrated egress rule
+# there could break CoreDNS and take the cluster down. Every new namespace needs
+# its own copy of this policy.
 #
-# IPv4 uniquement : l'ipBlock ne couvre que 0.0.0.0/0. Les pods du cluster
-# sont IPv4 uniquement aujourd'hui, donc c'est correct en l'état. Le
-# datasource cloud-init de Hetzner essaie d'abord l'adresse IPv6
-# fe80::a9fe:a9fe avant l'IPv4 : le chemin IPv6 existe donc réellement,
-# simplement inatteignable depuis les pods de ce cluster pour l'instant.
-# Cette policy bascule le namespace en default-deny egress, donc un futur
-# passage en dual-stack (podCIDRs gagnant une plage IPv6) n'exposerait pas
-# le service de métadonnées : le trafic IPv6 serait bloqué par défaut, y
-# compris le trafic légitime, ce qui apparaîtrait comme des échecs IPv6
-# mystérieux sans lien apparent. À revoir si podCIDRs gagne une plage IPv6.
+# IPv4 only: the ipBlock covers 0.0.0.0/0 alone. This cluster's pods are IPv4
+# only today, so that is correct as it stands. Hetzner's cloud-init datasource
+# tries the IPv6 address fe80::a9fe:a9fe before the IPv4 one, so the IPv6 path
+# genuinely exists - it is simply unreachable from this cluster's pods for now.
+# This policy switches the namespace to default-deny egress, so a future move to
+# dual-stack (podCIDRs gaining an IPv6 range) would not expose the metadata
+# service: IPv6 traffic would be blocked by default, legitimate traffic included,
+# which would surface as mysterious unrelated IPv6 failures. Revisit if podCIDRs
+# ever gains an IPv6 range.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
