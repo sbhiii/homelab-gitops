@@ -16,11 +16,11 @@ helmCharts:
       api:
         # Dashboard accessible UNIQUEMENT via port-forward :
         #   kubectl port-forward -n traefik deploy/traefik 9000:9000
-        # Il n'est plus exposé par un Ingress. L'authentification basic passait
-        # par un SealedSecret ; sealed-secrets a été retiré du dépôt (chart
-        # amont en 404, plus aucun consommateur), en attendant la bascule vers
-        # SSM Parameter Store. Exposer le dashboard sans authentification
-        # révélerait toutes les routes et services du cluster.
+        # It is no longer exposed through an Ingress. Basic authentication came
+        # from a SealedSecret; sealed-secrets was removed from the repository
+        # (upstream chart 404s, and no consumers were left), pending the move to
+        # SSM Parameter Store. Exposing the dashboard without authentication
+        # would reveal every route and service in the cluster.
         dashboard: true
         insecure: true
       ingressRoute:

@@ -4,7 +4,7 @@ metadata:
   name: letsencrypt-route53
 spec:
   acme:
-    email: admin@sbhi.io # Reçoit les alertes d'expiration
+    email: admin@sbhi.io # Receives expiry notices
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-route53-account-key
@@ -12,7 +12,7 @@ spec:
       - dns01:
           route53:
             region: eu-west-1
-            # Renseigné explicitement : évite route53:ListHostedZonesByName
+            # Set explicitly: avoids needing route53:ListHostedZonesByName
             hostedZoneID: Z0304289A7179QHW2L9V
             role: arn:aws:iam::734213628046:role/cert-manager-route53
             auth:
