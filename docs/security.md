@@ -18,15 +18,22 @@ There is no [sealed-secrets](https://github.com/bitnami-labs/sealed-secrets), no
 
 **If you add something that genuinely needs a secret** — a database password, an API token for some third-party integration — there is currently nowhere in this repo to put it safely. The planned path is [SSM Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html), most likely fronted by External Secrets Operator, authenticating through the same OIDC trust chain `cert-manager` already uses — one additional IAM role in `sre-homelab`, no new credential mechanism. Until that lands, don't commit a manifest that assumes a secret exists without first deciding where it actually comes from.
 
-## Why the Traefik dashboard isn't exposed
+## The Traefik dashboard is not exposed externally, but is reachable in-cluster
 
-`apps/traefik/kustomization.yml` sets `dashboard: true` (the dashboard runs) but disables its `IngressRoute` and carries no `Ingress` of its own. It's reachable only via:
+`apps/traefik/kustomization.yml` sets `dashboard: true`, disables the dashboard's `IngressRoute`, and carries no `Ingress` of its own, so nothing reaches it from outside the cluster.
+
+It is not private inside the cluster. The same file sets `api.insecure: true` and `ports.traefik.expose.default: true`, which puts the unauthenticated API on the `traefik` `Service`:
 
 ```bash
-kubectl port-forward -n traefik deploy/traefik 9000:9000
+kubectl port-forward -n traefik deploy/traefik 8080:8080   # from a laptop
+curl http://traefik.traefik.svc:8080/dashboard/            # from any pod, no credential
 ```
 
-Its authentication used to be HTTP Basic Auth backed by a `SealedSecret`. Once that secret manager was removed, the honest options were: publish the dashboard with no authentication at all, or don't publish it. The dashboard reveals every route, service, and TLS configuration on the cluster — for a single-operator homelab, port-forward-only access costs nothing and closes that off entirely.
+The `NetworkPolicy` layer in this repo is egress-only and imposes no ingress restriction, so it does not close this off either.
+
+Authentication used to be HTTP Basic Auth backed by a `SealedSecret`. When that secret manager was removed the choice was to publish the dashboard unauthenticated or stop publishing it, and external exposure was dropped. What remains is the in-cluster surface: the dashboard reveals every route, service and TLS configuration, and any workload here can read it without credentials.
+
+**Known gap, not a decision.** Closing it means setting `api.insecure: false` or `ports.traefik.expose.default: false`. Neither is set today.
 
 ## Known limitations
 

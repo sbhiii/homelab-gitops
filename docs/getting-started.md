@@ -49,7 +49,7 @@ email: <a real address you control>
 
 These are Terraform outputs in the other repo but literal strings here — there's no automation copying them across. See [Known limitations](security.md#known-limitations) for why, and [`sre-homelab`'s getting-started guide](https://github.com/sbhiii/sre-homelab/blob/main/docs/getting-started.md) for where these values come from.
 
-**3. Ingress hostnames.** `apps/argocd/ingress.yml` hardcodes `argocd.srehomelab.sbhi.io` in two places (the `tls.hosts` entry and the `rules.host`). Change both to your own domain, and make sure a DNS record actually points there — `sre-homelab`'s `iac/aws/apps-dns.tf` creates a wildcard for this, but only for its own zone.
+**3. Ingress hostnames.** `apps/argocd/ingress.yml` hardcodes `argocd.homelab.sbhi.io` in two places (the `tls.hosts` entry and the `rules.host`). Change both to your own domain, and make sure a DNS record actually points there — `sre-homelab`'s `iac/aws/apps-dns.tf` creates a wildcard for this, but only for its own zone.
 
 **4. Push, and watch `root-app` pick it up:**
 

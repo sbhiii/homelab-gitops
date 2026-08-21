@@ -66,7 +66,7 @@ traefik.ingress.kubernetes.io/router.tls: "true"
 traefik.ingress.kubernetes.io/router.entrypoints: websecure
 ```
 
-Hostnames live under `*.srehomelab.sbhi.io` — a wildcard DNS record in the infrastructure repo's Terraform points them all at the node, so a new `Ingress` here needs no matching DNS change there. `cert-manager` obtains a certificate for each hostname automatically via the `ClusterIssuer` referenced in that first annotation; see [Getting started](getting-started.md) for the values that `ClusterIssuer` needs from the other repo, and [`sre-homelab`'s architecture doc](https://github.com/sbhiii/sre-homelab/blob/main/docs/architecture.md#the-oidc-trust-chain) for how it authenticates to Route53 without holding a credential.
+Hostnames live under `*.homelab.sbhi.io` — a wildcard DNS record in the infrastructure repo's Terraform points them all at the node, so a new `Ingress` here needs no matching DNS change there. `cert-manager` obtains a certificate for each hostname automatically via the `ClusterIssuer` referenced in that first annotation; see [Getting started](getting-started.md) for the values that `ClusterIssuer` needs from the other repo, and [`sre-homelab`'s architecture doc](https://github.com/sbhiii/sre-homelab/blob/main/docs/architecture.md#the-oidc-trust-chain) for how it authenticates to Route53 without holding a credential.
 
 ## Repository layout
 
