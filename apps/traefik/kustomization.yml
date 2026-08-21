@@ -14,18 +14,19 @@ helmCharts:
     includeCRDs: true
     valuesInline:
       api:
-        # Dashboard accessible UNIQUEMENT via port-forward :
-        #   kubectl port-forward -n traefik deploy/traefik 9000:9000
-        # It is no longer exposed through an Ingress. Basic authentication came
-        # from a SealedSecret; sealed-secrets was removed from the repository
-        # (upstream chart 404s, and no consumers were left), pending the move to
-        # SSM Parameter Store. Exposing the dashboard without authentication
-        # would reveal every route and service in the cluster.
+        # Not exposed through an Ingress, so unreachable from outside the
+        # cluster:
+        #   kubectl port-forward -n traefik deploy/traefik 8080:8080
+        # insecure: true does leave the unauthenticated API on the Service,
+        # so any pod can read it. See docs/security.md; that is a known gap.
+        # Basic authentication came from a SealedSecret; sealed-secrets was
+        # removed from the repository (upstream chart 404s, and no consumers
+        # were left), pending the move to SSM Parameter Store.
         dashboard: true
         insecure: true
       ingressRoute:
         dashboard:
-          enabled: false # Pas d'exposition publique du dashboard
+          enabled: false # no public exposure of the dashboard
       deployment:
         kind: Deployment
       service:
