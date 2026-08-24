@@ -8,9 +8,13 @@ Every app in this repo (`argocd`, `cert-manager`, `traefik`) carries an identica
 
 This is **defense in depth, not the primary control.** The primary mitigation is a host-level `iptables` rule installed by `sre-homelab`'s cloud-init script, which covers every namespace uniformly because it operates below Kubernetes entirely. These `NetworkPolicy` objects are the secondary layer, and they have a real limitation the host rule doesn't: **`NetworkPolicy` is namespaced.** `default`, `kube-system`, and any namespace added to this repo without its own copy of `networkpolicy.yml` are not covered. Each policy file says as much in its own comment — read one directly if you're touching this.
 
-## RBAC: letting `cert-manager` mint its own token
+## How `cert-manager` gets its AWS credentials, and what it is not allowed to do
 
-`apps/cert-manager/rbac.yml` grants exactly one thing: `create` on `serviceaccounts/token`, scoped via `resourceNames` to the `cert-manager` ServiceAccount alone, in the `cert-manager` namespace alone. Without it, `cert-manager` can't request the projected token it exchanges with AWS STS — the whole OIDC mechanism in the other repo depends on this one narrow grant existing here. It's a `Role` + `RoleBinding` pair, not a `ClusterRole`; nothing here reaches outside the `cert-manager` namespace.
+The kubelet projects a ServiceAccount token into the controller pod with `audience: sts.amazonaws.com`, and the AWS SDK inside `cert-manager` exchanges it for temporary credentials via `AssumeRoleWithWebIdentity`. The role ARN arrives in `AWS_ROLE_ARN` from the `aws-route53-role` ConfigMap; the token path arrives in `AWS_WEB_IDENTITY_TOKEN_FILE`. This is the same mechanism EKS calls IRSA, and it means the `ClusterIssuer` names no AWS identifier at all, which is what lets this repository be public.
+
+`cert-manager` holds **no Kubernetes permission** for any of it. An earlier version used `auth.kubernetes.serviceAccountRef`, where `cert-manager` minted its own token through the TokenRequest API, and that required a `Role` granting `create` on `serviceaccounts/token`. Projecting the token through the kubelet removes the need for that grant entirely, so it was deleted rather than left in place unused.
+
+The audience on the projected token is load-bearing. It must equal the `aud` condition on the IAM role's trust policy, and dropping that condition is the most common IRSA misconfiguration there is: it lets a token minted for any audience assume the role.
 
 ## What secret management currently doesn't exist here
 
@@ -38,7 +42,7 @@ Authentication used to be HTTP Basic Auth backed by a `SealedSecret`. When that 
 ## Known limitations
 
 - **`NetworkPolicy` coverage is per-namespace, and incomplete.** `default` and `kube-system` are not protected by anything in this repo. See [The NetworkPolicy layer](#the-networkpolicy-layer) above.
-- **Cross-repo values are copied by hand.** `hostedZoneID`, `role`, and the repo URL itself are literal strings here, sourced from `sre-homelab`'s Terraform outputs with nothing gluing the two together. See [Getting started](getting-started.md#forking-this-repo-for-your-own-cluster).
+- **Cross-repo values are copied by hand.** The repo URL is a literal string here, sourced from `sre-homelab`'s Terraform with nothing gluing the two together. The AWS role ARN is also copied by hand, but into a ConfigMap in the cluster rather than into a file in this repository. See [Getting started](getting-started.md#forking-this-repo-for-your-own-cluster).
 - **No secret management exists yet.** See above.
 - **No CI.** Nothing runs `kubectl kustomize --enable-helm` against every app on a pull request; it's done by hand before merging.
 

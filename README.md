@@ -11,7 +11,7 @@ Once the cluster exists, **this repo is the only input to it.** Every `Applicati
 | **[Architecture](docs/architecture.md)** | The app-of-apps pattern and sync waves, kustomize+helm, ingress conventions, and the one asymmetry in bootstrap order worth knowing about |
 | **[Getting started](docs/getting-started.md)** | Prerequisites and how to fork this repo and point your own cluster at it — including the values that have to be copied in by hand from `sre-homelab`'s Terraform outputs |
 | **[Operations](docs/operations.md)** | Adding an app, validating locally before pushing, reading ArgoCD sync failures |
-| **[Security model](docs/security.md)** | The `NetworkPolicy` layer, the RBAC that lets `cert-manager` mint its own token, and what secret management currently doesn't exist here |
+| **[Security model](docs/security.md)** | The `NetworkPolicy` layer, how `cert-manager` reaches AWS holding neither a credential nor a Kubernetes permission, and what secret management currently doesn't exist here |
 
 ## Related repository
 

@@ -6,7 +6,6 @@ namespace: cert-manager
 resources:
   - namespace.yml
   - cluster-issuer.yml
-  - rbac.yml
   - networkpolicy.yml
 
 helmCharts:
@@ -16,3 +15,35 @@ helmCharts:
     repo: https://charts.jetstack.io
     valuesInline:
       installCRDs: true # ESSENTIAL: without this, certificates will never work
+
+      # Self-managed IRSA. The kubelet projects a ServiceAccount token whose
+      # audience matches the aud condition on the IAM role's trust policy, and
+      # the AWS SDK inside the controller exchanges it for credentials. The role
+      # ARN arrives from a ConfigMap created outside git, which is what keeps the
+      # AWS account ID out of this repository. See docs/security.md.
+      volumes:
+        - name: aws-web-identity-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+                  # Must equal the aud condition on the role's trust policy.
+                  audience: sts.amazonaws.com
+      volumeMounts:
+        - name: aws-web-identity-token
+          mountPath: /var/run/secrets/sts.amazonaws.com/serviceaccount
+          readOnly: true
+      extraEnv:
+        # Not optional: if the ConfigMap is absent the controller will not
+        # start, which is a louder and more diagnosable failure than issuing
+        # certificates that silently never validate.
+        - name: AWS_ROLE_ARN
+          valueFrom:
+            configMapKeyRef:
+              name: aws-route53-role
+              key: role-arn
+        - name: AWS_WEB_IDENTITY_TOKEN_FILE
+          value: /var/run/secrets/sts.amazonaws.com/serviceaccount/token
+        - name: AWS_REGION
+          value: eu-west-1

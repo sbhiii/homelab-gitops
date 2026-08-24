@@ -85,9 +85,9 @@ apps/
   cert-manager/
     namespace.yml
     cluster-issuer.yml    the Route53 DNS-01 solver, OIDC-authenticated
-    rbac.yml               Role + RoleBinding letting cert-manager mint its own token
     networkpolicy.yml
-    kustomization.yml      pulls the jetstack/cert-manager chart
+    kustomization.yml      pulls the jetstack/cert-manager chart, projects the
+                           STS token, injects AWS_ROLE_ARN from a ConfigMap
 
   traefik/
     namespace.yml

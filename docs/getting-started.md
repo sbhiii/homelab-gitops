@@ -39,15 +39,16 @@ grep -rn 'repoURL' bootstrap/
 
 Point all three at your fork. (A fourth copy lives in `sre-homelab`'s `terraform.tfvars` as `github_repo_url` — that's what seeds `root-app` in the first place, so it has to match too.)
 
-**2. `apps/cert-manager/cluster-issuer.yml` needs three values from your own AWS setup:**
+**2. The AWS role ARN, which is deliberately not in this repository.** cert-manager reads it from `AWS_ROLE_ARN`, which comes from a ConfigMap you create in the cluster rather than from a file you commit:
 
-```yaml
-hostedZoneID: <from sre-homelab's `terraform output hosted_zone_id`>
-role: <from sre-homelab's `terraform output cert_manager_role_arn`>
-email: <a real address you control>
+```bash
+kubectl -n cert-manager create configmap aws-route53-role \
+  --from-literal=role-arn="$(terraform -chdir=../sre-homelab/iac/aws output -raw cert_manager_role_arn)"
 ```
 
-These are Terraform outputs in the other repo but literal strings here — there's no automation copying them across. See [Known limitations](security.md#known-limitations) for why, and [`sre-homelab`'s getting-started guide](https://github.com/sbhiii/sre-homelab/blob/main/docs/getting-started.md) for where these values come from.
+This repository contains no AWS account ID, no role ARN and no hosted zone ID, and that is the point: it is public, and an account ID in a public repository is exactly what `sre-homelab`'s landing zone rules exclude. The controller will not start until this ConfigMap exists, which is a deliberate choice: a `CreateContainerConfigError` naming the missing ConfigMap is easier to diagnose than certificates that silently never validate.
+
+The only value left to edit is the ACME email in `apps/cert-manager/cluster-issuer.yml`, which must be an address you control. Let's Encrypt sends expiry notices there and does not verify deliverability.
 
 **3. Ingress hostnames.** `apps/argocd/ingress.yml` hardcodes `argocd.homelab.sbhi.io` in two places (the `tls.hosts` entry and the `rules.host`). Change both to your own domain, and make sure a DNS record actually points there — `sre-homelab`'s `iac/aws/apps-dns.tf` creates a wildcard for this, but only for its own zone.
 
