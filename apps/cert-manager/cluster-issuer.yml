@@ -4,7 +4,7 @@ metadata:
   name: letsencrypt-route53
 spec:
   acme:
-    email: admin@example.com # Receives expiry notices
+    email: acme@alias.sbhi.io # Receives expiry notices
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-route53-account-key
