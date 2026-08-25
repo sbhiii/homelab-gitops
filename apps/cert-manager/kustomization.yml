@@ -35,7 +35,7 @@ helmCharts:
           mountPath: /var/run/secrets/sts.amazonaws.com/serviceaccount
           readOnly: true
       extraEnv:
-        # From terraform output cert_manager_role_arn in sre-homelab's iac/aws.
+        # From terraform output cert_manager_role_arn in homelab's iac/aws.
         # An account ID is not a secret, and this role is assumable only with a
         # token signed by this cluster's key and matching both trust policy
         # conditions.

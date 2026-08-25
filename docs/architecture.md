@@ -4,7 +4,7 @@
 
 ## The app-of-apps pattern
 
-Nothing in this repo is ever applied by hand. ArgoCD is seeded — by Terraform, in `sre-homelab` — with exactly one `Application`, `root-app`, pointed at this repo's `bootstrap/` directory:
+Nothing in this repo is ever applied by hand. ArgoCD is seeded — by Terraform, in `homelab` — with exactly one `Application`, `root-app`, pointed at this repo's `bootstrap/` directory:
 
 ```mermaid
 flowchart TD
@@ -32,7 +32,7 @@ Getting this order wrong is a real failure mode, not a theoretical one: earlier 
 
 ## The one asymmetry worth knowing
 
-`apps/argocd/kustomization.yml` has no `namespace.yml` and installs no Helm chart. That's deliberate, not an oversight: ArgoCD itself is already running by the time this repo's Applications sync — it's installed via a `HelmChart` custom resource that Terraform seeds directly into k3s's manifest directory at first boot, before GitOps takes over at all. `apps/argocd` only adds an `Ingress` and a `NetworkPolicy` on top of an instance that already exists. If you're looking for where ArgoCD gets installed, it isn't in this repo — see [`sre-homelab`'s bootstrap chain](https://github.com/sbhiii/sre-homelab/blob/main/docs/architecture.md#the-bootstrap-chain).
+`apps/argocd/kustomization.yml` has no `namespace.yml` and installs no Helm chart. That's deliberate, not an oversight: ArgoCD itself is already running by the time this repo's Applications sync — it's installed via a `HelmChart` custom resource that Terraform seeds directly into k3s's manifest directory at first boot, before GitOps takes over at all. `apps/argocd` only adds an `Ingress` and a `NetworkPolicy` on top of an instance that already exists. If you're looking for where ArgoCD gets installed, it isn't in this repo — see [`homelab`'s bootstrap chain](https://github.com/sbhiii/homelab/blob/main/docs/architecture.md#the-bootstrap-chain).
 
 ## Kustomize + Helm
 
@@ -66,7 +66,7 @@ traefik.ingress.kubernetes.io/router.tls: "true"
 traefik.ingress.kubernetes.io/router.entrypoints: websecure
 ```
 
-Hostnames live under `*.homelab.sbhi.io` — a wildcard DNS record in the infrastructure repo's Terraform points them all at the node, so a new `Ingress` here needs no matching DNS change there. `cert-manager` obtains a certificate for each hostname automatically via the `ClusterIssuer` referenced in that first annotation; see [Getting started](getting-started.md) for the values that `ClusterIssuer` needs from the other repo, and [`sre-homelab`'s architecture doc](https://github.com/sbhiii/sre-homelab/blob/main/docs/architecture.md#the-oidc-trust-chain) for how it authenticates to Route53 without holding a credential.
+Hostnames live under `*.homelab.sbhi.io` — a wildcard DNS record in the infrastructure repo's Terraform points them all at the node, so a new `Ingress` here needs no matching DNS change there. `cert-manager` obtains a certificate for each hostname automatically via the `ClusterIssuer` referenced in that first annotation; see [Getting started](getting-started.md) for the values that `ClusterIssuer` needs from the other repo, and [`homelab`'s architecture doc](https://github.com/sbhiii/homelab/blob/main/docs/architecture.md#the-oidc-trust-chain) for how it authenticates to Route53 without holding a credential.
 
 ## Repository layout
 
