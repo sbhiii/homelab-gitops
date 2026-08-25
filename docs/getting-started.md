@@ -39,16 +39,20 @@ grep -rn 'repoURL' bootstrap/
 
 Point all three at your fork. (A fourth copy lives in `sre-homelab`'s `terraform.tfvars` as `github_repo_url` — that's what seeds `root-app` in the first place, so it has to match too.)
 
-**2. The AWS role ARN, which is deliberately not in this repository.** cert-manager reads it from `AWS_ROLE_ARN`, which comes from a ConfigMap you create in the cluster rather than from a file you commit:
+**2. Three values from your own AWS setup**, all committed here rather than injected:
 
-```bash
-kubectl -n cert-manager create configmap aws-route53-role \
-  --from-literal=role-arn="$(terraform -chdir=../sre-homelab/iac/aws output -raw cert_manager_role_arn)"
+```yaml
+# apps/cert-manager/kustomization.yml
+AWS_ROLE_ARN: <terraform output cert_manager_role_arn>
+
+# apps/cert-manager/cluster-issuer.yml
+hostedZoneID: <terraform output hosted_zone_id>
+email:        <an address you control>
 ```
 
-This repository contains no AWS account ID, no role ARN and no hosted zone ID, and that is the point: it is public, and an account ID in a public repository is exactly what `sre-homelab`'s landing zone rules exclude. The controller will not start until this ConfigMap exists, which is a deliberate choice: a `CreateContainerConfigError` naming the missing ConfigMap is easier to diagnose than certificates that silently never validate.
+The role ARN contains an AWS account ID, and committing it is deliberate. AWS does not treat account IDs as secret, and this role is assumable only with a token signed by this cluster's key that satisfies both conditions on its trust policy. Hiding it would buy nothing and would cost a manual step on every cluster rebuild, since anything not in git has to be reapplied by hand after a rebuild.
 
-The only value left to edit is the ACME email in `apps/cert-manager/cluster-issuer.yml`, which must be an address you control. Let's Encrypt sends expiry notices there and does not verify deliverability.
+Only the email genuinely matters to get right: Let's Encrypt sends expiry notices there and never verifies deliverability.
 
 **3. Ingress hostnames.** `apps/argocd/ingress.yml` hardcodes `argocd.homelab.sbhi.io` in two places (the `tls.hosts` entry and the `rules.host`). Change both to your own domain, and make sure a DNS record actually points there — `sre-homelab`'s `iac/aws/apps-dns.tf` creates a wildcard for this, but only for its own zone.
 
