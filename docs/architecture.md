@@ -92,7 +92,8 @@ apps/
   traefik/
     namespace.yml
     networkpolicy.yml
-    kustomization.yml      pulls the traefik/traefik chart; dashboard port-forward only
+    kustomization.yml      pulls the traefik/traefik chart; API and dashboard
+                           not served, HTTP redirected to HTTPS
 ```
 
 ---
