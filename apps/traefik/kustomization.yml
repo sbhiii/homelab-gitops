@@ -29,6 +29,17 @@ helmCharts:
           enabled: false # no public exposure of the dashboard
       deployment:
         kind: Deployment
+      # hostPort makes Traefik a singleton: only one pod can hold 80 and 443 on
+      # the node. The chart's default RollingUpdate keeps the old pod until the
+      # new one is Ready, and the new one can never become Ready because the old
+      # one still holds the ports. The rollout deadlocks and stays Pending until
+      # someone deletes the old pod by hand.
+      #
+      # Recreate stops the old pod first. That is a few seconds without ingress
+      # on every Traefik change, which is the honest cost of one node and no
+      # load balancer.
+      updateStrategy:
+        type: Recreate
       service:
         type: ClusterIP
       ports:
