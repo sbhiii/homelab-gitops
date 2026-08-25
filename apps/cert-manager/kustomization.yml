@@ -18,9 +18,9 @@ helmCharts:
 
       # Self-managed IRSA. The kubelet projects a ServiceAccount token whose
       # audience matches the aud condition on the IAM role's trust policy, and
-      # the AWS SDK inside the controller exchanges it for credentials. The role
-      # ARN arrives from a ConfigMap created outside git, which is what keeps the
-      # AWS account ID out of this repository. See docs/security.md.
+      # the AWS SDK inside the controller exchanges it for credentials. This is
+      # what EKS does natively, and it works for any AWS SDK workload rather
+      # than only for cert-manager's own solver. See docs/security.md.
       volumes:
         - name: aws-web-identity-token
           projected:
@@ -35,14 +35,12 @@ helmCharts:
           mountPath: /var/run/secrets/sts.amazonaws.com/serviceaccount
           readOnly: true
       extraEnv:
-        # Not optional: if the ConfigMap is absent the controller will not
-        # start, which is a louder and more diagnosable failure than issuing
-        # certificates that silently never validate.
+        # From terraform output cert_manager_role_arn in sre-homelab's iac/aws.
+        # An account ID is not a secret, and this role is assumable only with a
+        # token signed by this cluster's key and matching both trust policy
+        # conditions.
         - name: AWS_ROLE_ARN
-          valueFrom:
-            configMapKeyRef:
-              name: aws-route53-role
-              key: role-arn
+          value: arn:aws:iam::406169238804:role/cert-manager-route53
         - name: AWS_WEB_IDENTITY_TOKEN_FILE
           value: /var/run/secrets/sts.amazonaws.com/serviceaccount/token
         - name: AWS_REGION

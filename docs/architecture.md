@@ -87,7 +87,7 @@ apps/
     cluster-issuer.yml    the Route53 DNS-01 solver, OIDC-authenticated
     networkpolicy.yml
     kustomization.yml      pulls the jetstack/cert-manager chart, projects the
-                           STS token, injects AWS_ROLE_ARN from a ConfigMap
+                           STS token and sets AWS_ROLE_ARN
 
   traefik/
     namespace.yml

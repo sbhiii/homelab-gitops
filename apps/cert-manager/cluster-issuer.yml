@@ -12,3 +12,7 @@ spec:
       - dns01:
           route53:
             region: eu-west-1
+            # Set explicitly: avoids needing route53:ListHostedZonesByName,
+            # which takes no resource-level permissions and so cannot be
+            # scoped to one zone.
+            hostedZoneID: Z07358683H6SZYTME6GCG
