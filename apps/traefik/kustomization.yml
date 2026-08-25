@@ -34,6 +34,17 @@ helmCharts:
       ports:
         web:
           hostPort: 80
+          # Ingresses here bind to the websecure entrypoint only, so without
+          # this, plain HTTP reaches Traefik and gets a 404 over an
+          # unencrypted connection. A browser sent to the bare hostname tries
+          # HTTP first and shows "Not secure", which looks like a broken
+          # certificate and is not one.
+          http:
+            redirections:
+              entryPoint:
+                to: websecure
+                scheme: https
+                permanent: true
         websecure:
           hostPort: 443
         traefik:
