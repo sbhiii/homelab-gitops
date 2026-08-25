@@ -24,22 +24,17 @@ There is no [sealed-secrets](https://github.com/bitnami-labs/sealed-secrets), no
 
 **If you add something that genuinely needs a secret** — a database password, an API token for some third-party integration — there is currently nowhere in this repo to put it safely. The planned path is [SSM Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html), most likely fronted by External Secrets Operator, authenticating through the same OIDC trust chain `cert-manager` already uses — one additional IAM role in `sre-homelab`, no new credential mechanism. Until that lands, don't commit a manifest that assumes a secret exists without first deciding where it actually comes from.
 
-## The Traefik dashboard is not exposed externally, but is reachable in-cluster
+## The Traefik dashboard is not served at all
 
-`apps/traefik/kustomization.yml` sets `dashboard: true`, disables the dashboard's `IngressRoute`, and carries no `Ingress` of its own, so nothing reaches it from outside the cluster.
+`apps/traefik/kustomization.yml` sets `api.insecure: false`, so the API and dashboard are not served on the `traefik` entrypoint. The dashboard's `IngressRoute` is disabled and there is no `Ingress`, so nothing reaches it from outside either. It is unreachable, including by `kubectl port-forward`.
 
-It is not private inside the cluster. The same file sets `api.insecure: true` and `ports.traefik.expose.default: true`, which puts the unauthenticated API on the `traefik` `Service`:
+That is a deliberate loss of a diagnostic. Reading Traefik's live routing table is genuinely useful, and it is given up because the alternative is worse.
 
-```bash
-kubectl port-forward -n traefik deploy/traefik 8080:8080   # from a laptop
-curl http://traefik.traefik.svc:8080/dashboard/            # from any pod, no credential
-```
+**Why the obvious fix is not the fix.** For a while this was `api.insecure: true` with `ports.traefik.expose.default: true`, which put the unauthenticated API on the `traefik` `Service` where any pod could read every route, service and TLS configuration without a credential. Removing the port from the `Service` looks like it would close that, and does not: Kubernetes pod networking is flat, so a pod can reach the Traefik pod's IP on 8080 whether or not a `Service` points at it. The `NetworkPolicy` layer here is egress-only and imposes no ingress restriction either. The only thing that actually closes it is not serving the API on that port.
 
-The `NetworkPolicy` layer in this repo is egress-only and imposes no ingress restriction, so it does not close this off either.
+**The entrypoint stays up.** Both probes hit `/ping` on 8080, so port 8080 keeps listening; `--ping=true` survives while `--api.insecure=false` removes the dashboard from it.
 
-Authentication used to be HTTP Basic Auth backed by a `SealedSecret`. When that secret manager was removed the choice was to publish the dashboard unauthenticated or stop publishing it, and external exposure was dropped. What remains is the in-cluster surface: the dashboard reveals every route, service and TLS configuration, and any workload here can read it without credentials.
-
-**Known gap, not a decision.** Closing it means setting `api.insecure: false` or `ports.traefik.expose.default: false`. Neither is set today.
+**Getting the dashboard back** means a secured `IngressRoute`, which needs authentication, which needs somewhere to keep a credential. That is the gap described above under secret management. Until it exists, the honest options were an unauthenticated dashboard readable by every workload in the cluster, or no dashboard, and this repo picks no dashboard for the same reason it stopped publishing it externally.
 
 ## Known limitations
 

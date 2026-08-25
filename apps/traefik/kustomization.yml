@@ -14,16 +14,20 @@ helmCharts:
     includeCRDs: true
     valuesInline:
       api:
-        # Not exposed through an Ingress, so unreachable from outside the
-        # cluster:
-        #   kubectl port-forward -n traefik deploy/traefik 8080:8080
-        # insecure: true does leave the unauthenticated API on the Service,
-        # so any pod can read it. See docs/security.md; that is a known gap.
-        # Basic authentication came from a SealedSecret; sealed-secrets was
-        # removed from the repository (upstream chart 404s, and no consumers
-        # were left), pending the move to SSM Parameter Store.
+        # insecure: false means the API and dashboard are not served on the
+        # traefik entrypoint at all, so they are unreachable from anywhere,
+        # port-forward included. With insecure: true any pod could read every
+        # route, service and TLS setting without a credential, and removing the
+        # port from the Service would not have fixed it: pod networking is flat,
+        # so the pod IP stays reachable regardless of any Service.
+        #
+        # Port 8080 keeps listening because both probes hit /ping on it.
+        #
+        # dashboard: true is left on so enabling a secured IngressRoute later is
+        # one change. That needs authentication, which needs somewhere to keep a
+        # credential; see docs/security.md.
         dashboard: true
-        insecure: true
+        insecure: false
       ingressRoute:
         dashboard:
           enabled: false # no public exposure of the dashboard
