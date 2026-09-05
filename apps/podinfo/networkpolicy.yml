@@ -1,0 +1,36 @@
+# The Hetzner metadata service serves user_data without authentication, and that
+# user_data contains the token-signing key. No pod needs to reach it.
+#
+# Scope: this policy applies per namespace. Namespaces without their own copy
+# (default, kube-system, or any namespace created later) remain exposed to the
+# metadata service. kube-system is deliberately excluded: it hosts CoreDNS,
+# metrics-server and local-path-provisioner, and a badly calibrated egress rule
+# there could break CoreDNS and take the cluster down. Every new namespace needs
+# its own copy of this policy.
+#
+# IPv4 only: the ipBlock covers 0.0.0.0/0 alone. This cluster's pods are IPv4
+# only today, so that is correct as it stands. Hetzner's cloud-init datasource
+# tries the IPv6 address fe80::a9fe:a9fe before the IPv4 one, so the IPv6 path
+# genuinely exists - it is simply unreachable from this cluster's pods for now.
+# This policy switches the namespace to default-deny egress, so a future move to
+# dual-stack (podCIDRs gaining an IPv6 range) would not expose the metadata
+# service: IPv6 traffic would be blocked by default, legitimate traffic included,
+# which would surface as mysterious unrelated IPv6 failures. Revisit if podCIDRs
+# ever gains an IPv6 range.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-metadata-service
+  namespace: podinfo
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32
+    - to:
+        - namespaceSelector: {}

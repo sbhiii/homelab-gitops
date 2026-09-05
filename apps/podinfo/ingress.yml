@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: podinfo-server-ingress
+  namespace: podinfo
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-route53"
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  tls:
+    - hosts:
+        - podinfo.homelab.sbhi.io
+      secretName: podinfo-server-tls # cert-manager will create this certificate
+  rules:
+    - host: podinfo.homelab.sbhi.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: podinfo
+                port:
+                  number: 9898 # ArgoCD listens on 80 thanks to the --insecure flag
