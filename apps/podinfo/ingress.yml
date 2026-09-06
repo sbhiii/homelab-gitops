@@ -22,4 +22,4 @@ spec:
               service:
                 name: podinfo
                 port:
-                  number: 9898 # ArgoCD listens on 80 thanks to the --insecure flag
+                  number: 9898
