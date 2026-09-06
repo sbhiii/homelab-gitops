@@ -72,7 +72,10 @@ Traefik runs as a `Deployment` with `hostPort: 80/443` and a `ClusterIP` Service
 cert-manager.io/cluster-issuer: "letsencrypt-route53"
 traefik.ingress.kubernetes.io/router.tls: "true"
 traefik.ingress.kubernetes.io/router.entrypoints: websecure
+traefik.ingress.kubernetes.io/router.middlewares: <namespace>-basic-auth@kubernetescrd
 ```
+
+The last one puts basic auth in front of everything reachable from the internet. The `Middleware` and the `Secret` behind it are namespaced and Traefik will not resolve them across namespaces, so each exposed app carries its own copy of both — see [Security model](security.md#everything-internet-facing-is-behind-basic-auth).
 
 Hostnames live under `*.homelab.sbhi.io` — a wildcard DNS record in the infrastructure repo's Terraform points them all at the node, so a new `Ingress` here needs no matching DNS change there. `cert-manager` obtains a certificate for each hostname automatically via the `ClusterIssuer` referenced in that first annotation; see [Getting started](getting-started.md) for the values that `ClusterIssuer` needs from the other repo, and [`homelab`'s architecture doc](https://github.com/sbhiii/homelab/blob/main/docs/architecture.md#the-oidc-trust-chain) for how it authenticates to Route53 without holding a credential.
 
@@ -89,6 +92,10 @@ bootstrap/
 apps/
   argocd/
     ingress.yml          ArgoCD's own web UI, TLS via cert-manager
+    externalsecret-admin-password.yml  merges the admin password into
+                           argocd-secret, so a rebuild keeps it
+    externalsecret-basicauth.yml       htpasswd credential for the middleware
+    middleware-basicauth.yml
     networkpolicy.yml     denies egress to the Hetzner metadata service
     kustomization.yml
 
@@ -116,6 +123,8 @@ apps/
   podinfo/
     namespace.yml
     ingress.yml            podinfo.homelab.sbhi.io, TLS via cert-manager
+    externalsecret-basicauth.yml
+    middleware-basicauth.yml
     networkpolicy.yml
     kustomization.yml      pulls the podinfo chart, stock values
 ```
