@@ -66,23 +66,35 @@ kubectl -n argocd annotate application <name> argocd.argoproj.io/refresh=hard --
 Reach for this before assuming anything is wrong. Twice now a change that looked
 stuck was simply not yet fetched.
 
-## Getting into the ArgoCD UI
+## Adding an app that is reachable from the internet
 
-```bash
-kubectl -n argocd get secret argocd-initial-admin-secret \
-  -o jsonpath='{.data.password}' | base64 -d; echo
+An `Ingress` is not enough. Copy `externalsecret-basicauth.yml` and `middleware-basicauth.yml` from an existing exposed app, change only `metadata.namespace`, add both to `resources:`, and put the middleware annotation on the `Ingress`:
+
+```yaml
+traefik.ingress.kubernetes.io/router.middlewares: <namespace>-basic-auth@kubernetescrd
 ```
 
-Username `admin`. Change the password on first login and delete the bootstrap
-secret afterwards, which is what upstream recommends:
+Traefik will not resolve a `Middleware` in another namespace, which is why this is copied rather than shared. Forgetting it publishes the app with no authentication and nothing fails loudly.
+
+## Getting into the ArgoCD UI
+
+Two credentials, in order: the basic-auth prompt in front of every exposed host, then ArgoCD's own login. Both are `admin`, and both passwords are in Parameter Store:
+
+```bash
+export AWS_PROFILE=sbhi-homelab
+aws ssm get-parameter --name /homelab/traefik/basicauth-password --with-decryption --query Parameter.Value --output text
+aws ssm get-parameter --name /homelab/argocd/admin-password     --with-decryption --query Parameter.Value --output text
+```
+
+**Both survive a rebuild**, which is the reason they live there. ArgoCD generates an admin password at install and stores it in `argocd-initial-admin-secret`; an `ExternalSecret` overwrites `admin.password` in `argocd-secret` with the one from Parameter Store, so a fresh cluster comes up with the password you already know. `argocd-initial-admin-secret` still exists and still holds the generated value, which is now misleading — delete it:
 
 ```bash
 kubectl -n argocd delete secret argocd-initial-admin-secret
 ```
 
-**It does not survive a rebuild.** That secret is generated at install, so a node
-replacement mints a new one and any password you set is gone with the old
-cluster. Do not store it anywhere expecting it to stay valid.
+**Changing the password** means updating the parameter, not the cluster. A change through the ArgoCD UI is overwritten on the operator's next refresh.
+
+**The `argocd` CLI does not pass the basic-auth credential**, so it cannot reach the server over the public hostname. Use `kubectl port-forward svc/argocd-server -n argocd 8080:443` and point the CLI at localhost.
 
 ## Manual changes don't stick
 

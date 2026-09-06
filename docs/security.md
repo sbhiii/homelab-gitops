@@ -22,6 +22,8 @@ The audience on the projected token is load-bearing. It must equal the `aud` con
 
 Secrets live in AWS SSM Parameter Store, in the `sbhi-homelab` account, and reach the cluster through [External Secrets Operator](https://external-secrets.io/). Nothing in this repository holds a secret value.
 
+Two things use it today: the basic-auth credential in front of every exposed app, and ArgoCD's admin password, which is read from Parameter Store so that it survives a cluster rebuild rather than being regenerated.
+
 An `ExternalSecret` names a parameter path and the `Secret` it should produce. It is a pointer, not a secret, which is why it is safe to commit here while the value it names never leaves AWS. The operator fetches on `refreshInterval` and writes a real `Secret` into the namespace.
 
 The operator authenticates through the same OIDC trust chain `cert-manager` uses, with no stored credential. Two details are worth knowing because neither is obvious:
@@ -45,21 +47,29 @@ That is a deliberate loss of a diagnostic. Reading Traefik's live routing table 
 
 **The entrypoint stays up.** Both probes hit `/ping` on 8080, so port 8080 keeps listening; `--ping=true` survives while `--api.insecure=false` removes the dashboard from it.
 
-**Getting the dashboard back** means a secured `IngressRoute`, which needs authentication, which needs somewhere to keep a credential. That somewhere now exists, so this is a choice rather than a constraint: a basic-auth secret can come from Parameter Store. It has not been done because the dashboard is reachable with `kubectl port-forward -n traefik deploy/traefik 9000:9000` and nothing yet justifies exposing it.
+**Getting the dashboard back** means a secured `IngressRoute`. The basic-auth middleware every other exposed app uses would serve, so this is now a choice rather than a constraint. It stays unexposed because `kubectl port-forward -n traefik deploy/traefik 9000:9000` reaches it and nothing justifies a public route to the cluster's live routing table.
 
-## `podinfo` is served publicly, with no authentication
+## Everything internet-facing is behind basic auth
 
-`apps/podinfo` is a demo app, and its `Ingress` puts it on the public internet at `podinfo.homelab.sbhi.io`. Ports 80 and 443 are open to `0.0.0.0/0` at the Hetzner firewall, because that is how any app here is reached, and nothing in this repo authenticates anything. Anyone who knows the hostname can use it.
+Ports 80 and 443 are open to `0.0.0.0/0` at the Hetzner firewall, because that is how any app here is reached. Every `Ingress` therefore carries a Traefik `basicAuth` middleware, including ones with nothing worth protecting:
 
-That matters more than "it is only a demo" suggests, because podinfo is an HTTP testing toolkit rather than a static page. `/env` returns the pod's environment variables. `/panic` crashes the pod, repeatedly if asked. `/delay/{seconds}` holds connections open on a single-node cluster. None of that exposes anything valuable today, since podinfo holds no data and its environment is stock, but the reachability is real and it is worth knowing before pointing the same pattern at something that does hold data.
+```yaml
+traefik.ingress.kubernetes.io/router.middlewares: <namespace>-basic-auth@kubernetescrd
+```
 
-It is exposed anyway, deliberately. The alternatives were a Traefik `IPAllowList` middleware restricted to a home IP, which adds a second place to update when that IP rotates, or `kubectl port-forward` only, which is what the Traefik dashboard already does. Neither is worth it for an app whose entire purpose is being reachable and boring. **The next app to be exposed should not inherit this by default.** Basic auth is now possible — a credential can come from Parameter Store — so exposing something without it is a decision to make deliberately.
+The credential comes from Parameter Store, hashed into htpasswd format by the operator's `htpasswd` template function. The stored value is the password itself; no hash is committed anywhere.
+
+**Traefik cannot reference a Middleware across namespaces**, so every namespace with an exposed `Ingress` carries its own `Middleware` and its own `ExternalSecret`. They read the same parameter, so there is still one password. Adding an exposed app means copying both files, not just writing an `Ingress`.
+
+**`podinfo` is why this is a rule rather than a judgement call.** It is a demo app holding nothing, and it would be easy to argue it needs no protection. But it is an HTTP testing toolkit: `/env` returns the pod's environment, `/panic` crashes the pod, `/delay/{n}` holds connections open on a single-node cluster. The interesting endpoints are rarely on the app you decided was important.
+
+**ArgoCD sits behind basic auth as well**, in front of its own login. Two consequences worth knowing: the `argocd` CLI does not pass the outer credential, and a GitHub webhook to `/api/webhook` would need it too.
 
 ## Known limitations
 
 - **`NetworkPolicy` coverage is per-namespace, and incomplete.** `default` and `kube-system` are not protected by anything in this repo. See [The NetworkPolicy layer](#the-networkpolicy-layer) above.
 - **Cross-repo values are copied by hand.** The repo URL, the two role ARNs and the hosted zone ID are literal strings here, sourced from `homelab`'s Terraform outputs with nothing gluing the two together. See [Getting started](getting-started.md#forking-this-repo-for-your-own-cluster).
-- **`podinfo` is reachable by anyone.** No authentication fronts it. See [above](#podinfo-is-served-publicly-with-no-authentication).
+- **One credential fronts every exposed app.** A single basic-auth password, in one Parameter Store entry, guards ArgoCD and `podinfo` alike. Per-app credentials would be a second parameter and a second `ExternalSecret` per namespace; it has not been worth it at two apps.
 - **No CI.** Nothing runs `kubectl kustomize --enable-helm` against every app on a pull request; it's done by hand before merging.
 
 ---

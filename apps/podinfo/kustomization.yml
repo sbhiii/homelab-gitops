@@ -5,6 +5,8 @@ resources:
   - namespace.yml
   - networkpolicy.yml
   - ingress.yml
+  - externalsecret-basicauth.yml
+  - middleware-basicauth.yml
 
 helmCharts:
   - name: podinfo
