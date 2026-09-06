@@ -6,7 +6,6 @@ resources:
   - networkpolicy.yml
   - serviceaccount.yml
   - clustersecretstore.yml
-  - test-external-secrets.yml
 
 helmCharts:
   - name: external-secrets
