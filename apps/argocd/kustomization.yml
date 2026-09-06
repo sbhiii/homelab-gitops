@@ -5,5 +5,4 @@ resources:
   - ingress.yml
   - networkpolicy.yml
   - externalsecret-admin-password.yml
-  - externalsecret-basicauth.yml
   - middleware-basicauth.yml

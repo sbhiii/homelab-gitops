@@ -59,7 +59,9 @@ traefik.ingress.kubernetes.io/router.middlewares: <namespace>-basic-auth@kuberne
 
 The credential comes from Parameter Store, hashed into htpasswd format by the operator's `htpasswd` template function. The stored value is the password itself; no hash is committed anywhere.
 
-**Traefik cannot reference a Middleware across namespaces**, so every namespace with an exposed `Ingress` carries its own `Middleware` and its own `ExternalSecret`. They read the same parameter, so there is still one password. Adding an exposed app means copying both files, not just writing an `Ingress`.
+**Traefik resolves a Middleware's secret in the Middleware's own namespace, and will not resolve a Middleware across namespaces.** So each exposed namespace needs its own `Middleware` and its own copy of the `Secret`. The `Middleware` is copied — eight static lines holding nothing — but the credential is not: a single `ClusterExternalSecret` in `apps/traefik` projects it into every selected namespace.
+
+Namespaces are selected on `kubernetes.io/metadata.name`, a label the API server sets on every namespace. Nothing needs labelling by hand, and `argocd` needs no `Namespace` manifest — which matters, because this repo deliberately does not manage that namespace. Exposing a new app means adding its namespace to that list and copying the `Middleware`.
 
 **`podinfo` is why this is a rule rather than a judgement call.** It is a demo app holding nothing, and it would be easy to argue it needs no protection. But it is an HTTP testing toolkit: `/env` returns the pod's environment, `/panic` crashes the pod, `/delay/{n}` holds connections open on a single-node cluster. The interesting endpoints are rarely on the app you decided was important.
 

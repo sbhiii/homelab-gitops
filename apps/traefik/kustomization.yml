@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yml
   - networkpolicy.yml
+  - clusterexternalsecret-basicauth.yml
 
 helmCharts:
   - name: traefik
