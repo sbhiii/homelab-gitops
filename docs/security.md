@@ -4,7 +4,7 @@
 
 ## The NetworkPolicy layer
 
-Every app in this repo (`argocd`, `cert-manager`, `traefik`, `podinfo`) carries an identical `networkpolicy.yml` denying egress from its namespace to `169.254.169.254` — the Hetzner metadata service, which serves the cluster's ServiceAccount token-signing key unauthenticated. The full reasoning for *why* that address matters lives in `homelab`'s [security model](https://github.com/sbhiii/homelab/blob/main/docs/security.md); this repo is where the mitigation is actually declared.
+Every app in this repo (`argocd`, `cert-manager`, `traefik`, `podinfo`, `external-secrets`) carries an identical `networkpolicy.yml` denying egress from its namespace to `169.254.169.254` — the Hetzner metadata service, which serves the cluster's ServiceAccount token-signing key unauthenticated. The full reasoning for *why* that address matters lives in `homelab`'s [security model](https://github.com/sbhiii/homelab/blob/main/docs/security.md); this repo is where the mitigation is actually declared.
 
 This is **defense in depth, not the primary control.** The primary mitigation is a host-level `iptables` rule installed by `homelab`'s cloud-init script, which covers every namespace uniformly because it operates below Kubernetes entirely. These `NetworkPolicy` objects are the secondary layer, and they have a real limitation the host rule doesn't: **`NetworkPolicy` is namespaced.** `default`, `kube-system`, and any namespace added to this repo without its own copy of `networkpolicy.yml` are not covered. Each policy file says as much in its own comment — read one directly if you're touching this.
 
@@ -18,11 +18,22 @@ The role ARN is committed here, account ID and all. That is deliberate: AWS does
 
 The audience on the projected token is load-bearing. It must equal the `aud` condition on the IAM role's trust policy, and dropping that condition is the most common IRSA misconfiguration there is: it lets a token minted for any audience assume the role.
 
-## What secret management currently doesn't exist here
+## Where secrets come from
 
-There is no [sealed-secrets](https://github.com/bitnami-labs/sealed-secrets), no External Secrets Operator, and no other in-cluster secret manager in this repo. That's not an oversight — sealed-secrets was removed after its Helm chart repository started returning 404, and by the time it was removed it had no consumers left anyway: `cert-manager`'s AWS credential was eliminated entirely by the OIDC migration (nothing to encrypt when there's no static credential), and the Traefik dashboard's basic-auth secret was removed along with the dashboard's public exposure (see below).
+Secrets live in AWS SSM Parameter Store, in the `sbhi-homelab` account, and reach the cluster through [External Secrets Operator](https://external-secrets.io/). Nothing in this repository holds a secret value.
 
-**If you add something that genuinely needs a secret** — a database password, an API token for some third-party integration — there is currently nowhere in this repo to put it safely. The planned path is [SSM Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html), most likely fronted by External Secrets Operator, authenticating through the same OIDC trust chain `cert-manager` already uses — one additional IAM role in `homelab`, no new credential mechanism. Until that lands, don't commit a manifest that assumes a secret exists without first deciding where it actually comes from.
+An `ExternalSecret` names a parameter path and the `Secret` it should produce. It is a pointer, not a secret, which is why it is safe to commit here while the value it names never leaves AWS. The operator fetches on `refreshInterval` and writes a real `Secret` into the namespace.
+
+The operator authenticates through the same OIDC trust chain `cert-manager` uses, with no stored credential. Two details are worth knowing because neither is obvious:
+
+- **The role ARN lives on the ServiceAccount**, in an `eks.amazonaws.com/role-arn` annotation, not in the `ClusterSecretStore`. The name is EKS-branded and this cluster is k3s, which invites deleting it; the operator reads the key itself, and the EKS pod identity webhook is not involved. `spec.provider.aws.role` is a *different* field, for chaining a second role after the initial exchange.
+- **The token audience is not set explicitly.** The operator already requests `sts.amazonaws.com` and appends anything in `serviceAccountRef.audiences`, and the API server does not deduplicate. Naming it again produces a token with two audiences, which AWS rejects because OIDC requires an `azp` claim once `aud` holds more than one value.
+
+`external-secrets-ssm` is a ServiceAccount that no pod runs as. It exists only as the identity in the IAM trust policy's `sub` condition, so one store maps to one role and a second store can later have its own without widening the first. This is scoping, not containment: the operator holds `serviceaccounts/token: create` cluster-wide and can mint a token for any ServiceAccount.
+
+**Parameter values are created out of band**, with `aws ssm put-parameter`, and are not managed by Terraform. `aws_ssm_parameter.value` is a `computed` attribute, so it is read back into state on every refresh regardless of `ignore_changes` — managing values there would put them in the bucket that already holds the cluster's signing key.
+
+**What still cannot come from here.** Anything ArgoCD needs before it can sync this repository, because the operator is installed by the repository. That is a real boundary, not a gap to close: a credential needed to reach the secret store cannot come from the secret store.
 
 ## The Traefik dashboard is not served at all
 
@@ -34,7 +45,7 @@ That is a deliberate loss of a diagnostic. Reading Traefik's live routing table 
 
 **The entrypoint stays up.** Both probes hit `/ping` on 8080, so port 8080 keeps listening; `--ping=true` survives while `--api.insecure=false` removes the dashboard from it.
 
-**Getting the dashboard back** means a secured `IngressRoute`, which needs authentication, which needs somewhere to keep a credential. That is the gap described above under secret management. Until it exists, the honest options were an unauthenticated dashboard readable by every workload in the cluster, or no dashboard, and this repo picks no dashboard for the same reason it stopped publishing it externally.
+**Getting the dashboard back** means a secured `IngressRoute`, which needs authentication, which needs somewhere to keep a credential. That somewhere now exists, so this is a choice rather than a constraint: a basic-auth secret can come from Parameter Store. It has not been done because the dashboard is reachable with `kubectl port-forward -n traefik deploy/traefik 9000:9000` and nothing yet justifies exposing it.
 
 ## `podinfo` is served publicly, with no authentication
 
@@ -42,14 +53,13 @@ That is a deliberate loss of a diagnostic. Reading Traefik's live routing table 
 
 That matters more than "it is only a demo" suggests, because podinfo is an HTTP testing toolkit rather than a static page. `/env` returns the pod's environment variables. `/panic` crashes the pod, repeatedly if asked. `/delay/{seconds}` holds connections open on a single-node cluster. None of that exposes anything valuable today, since podinfo holds no data and its environment is stock, but the reachability is real and it is worth knowing before pointing the same pattern at something that does hold data.
 
-It is exposed anyway, deliberately. The alternatives were a Traefik `IPAllowList` middleware restricted to a home IP, which adds a second place to update when that IP rotates, or `kubectl port-forward` only, which is what the Traefik dashboard already does. Neither is worth it for an app whose entire purpose is being reachable and boring. **The next app to be exposed should not inherit this by default.** Basic auth needs a credential, which needs the secret management described above, so the decision is deferred rather than settled.
+It is exposed anyway, deliberately. The alternatives were a Traefik `IPAllowList` middleware restricted to a home IP, which adds a second place to update when that IP rotates, or `kubectl port-forward` only, which is what the Traefik dashboard already does. Neither is worth it for an app whose entire purpose is being reachable and boring. **The next app to be exposed should not inherit this by default.** Basic auth is now possible — a credential can come from Parameter Store — so exposing something without it is a decision to make deliberately.
 
 ## Known limitations
 
 - **`NetworkPolicy` coverage is per-namespace, and incomplete.** `default` and `kube-system` are not protected by anything in this repo. See [The NetworkPolicy layer](#the-networkpolicy-layer) above.
-- **Cross-repo values are copied by hand.** The repo URL, the role ARN and the hosted zone ID are literal strings here, sourced from `homelab`'s Terraform outputs with nothing gluing the two together. See [Getting started](getting-started.md#forking-this-repo-for-your-own-cluster).
-- **No secret management exists yet.** See above.
-- **`podinfo` is reachable by anyone.** No authentication fronts it, and no authentication is currently possible. See [above](#podinfo-is-served-publicly-with-no-authentication).
+- **Cross-repo values are copied by hand.** The repo URL, the two role ARNs and the hosted zone ID are literal strings here, sourced from `homelab`'s Terraform outputs with nothing gluing the two together. See [Getting started](getting-started.md#forking-this-repo-for-your-own-cluster).
+- **`podinfo` is reachable by anyone.** No authentication fronts it. See [above](#podinfo-is-served-publicly-with-no-authentication).
 - **No CI.** Nothing runs `kubectl kustomize --enable-helm` against every app on a pull request; it's done by hand before merging.
 
 ---

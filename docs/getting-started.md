@@ -17,7 +17,7 @@
 This repo is not self-sufficient — it's the second half of a pair. To actually use it, you need:
 
 - **A running k3s/Kubernetes cluster with ArgoCD installed**, and an `Application` seeded to point at this repo's `bootstrap/` directory. [`homelab`](https://github.com/sbhiii/homelab) is exactly that — its Terraform installs ArgoCD and seeds `root-app` at first boot.
-- **An IAM role and hosted zone that `cert-manager` can use for Route53 DNS-01**, if you keep the OIDC-federated `ClusterIssuer` as-is. `homelab`'s `iac/aws` module produces both — see its [architecture doc](https://github.com/sbhiii/homelab/blob/main/docs/architecture.md#the-oidc-trust-chain). If you don't want that mechanism, `cert-manager`'s Route53 solver also supports a plain access-key `Secret`; that means editing `apps/cert-manager/cluster-issuer.yml` yourself, since this repo assumes the federated approach throughout.
+- **An IAM role and hosted zone that `cert-manager` can use for Route53 DNS-01**, if you keep the OIDC-federated `ClusterIssuer` as-is. `homelab`'s `iac/aws-shared-services` module produces both — see its [architecture doc](https://github.com/sbhiii/homelab/blob/main/docs/architecture.md#the-oidc-trust-chain). If you don't want that mechanism, `cert-manager`'s Route53 solver also supports a plain access-key `Secret`; that means editing `apps/cert-manager/cluster-issuer.yml` yourself, since this repo assumes the federated approach throughout.
 - **A domain you control**, for the ingress hostnames in `apps/argocd/ingress.yml` and anything you add later.
 
 ### Background knowledge
@@ -54,7 +54,7 @@ The role ARN contains an AWS account ID, and committing it is deliberate. AWS do
 
 Only the email genuinely matters to get right: Let's Encrypt sends expiry notices there and never verifies deliverability.
 
-**3. Ingress hostnames.** `apps/argocd/ingress.yml` hardcodes `argocd.homelab.sbhi.io` in two places (the `tls.hosts` entry and the `rules.host`). Change both to your own domain, and make sure a DNS record actually points there — `homelab`'s `iac/aws/apps-dns.tf` creates a wildcard for this, but only for its own zone.
+**3. Ingress hostnames.** `apps/argocd/ingress.yml` hardcodes `argocd.homelab.sbhi.io` in two places (the `tls.hosts` entry and the `rules.host`). Change both to your own domain, and make sure a DNS record actually points there — `homelab`'s `iac/aws-shared-services/apps_dns.tf` creates a wildcard for this, but only for its own zone.
 
 **4. Push, and watch `root-app` pick it up:**
 
