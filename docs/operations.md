@@ -68,13 +68,17 @@ stuck was simply not yet fetched.
 
 ## Adding an app that is reachable from the internet
 
-An `Ingress` is not enough. Copy `externalsecret-basicauth.yml` and `middleware-basicauth.yml` from an existing exposed app, change only `metadata.namespace`, add both to `resources:`, and put the middleware annotation on the `Ingress`:
+An `Ingress` is not enough. Three things:
+
+1. Add the namespace to the selector in [`apps/traefik/clusterexternalsecret-basicauth.yml`](../apps/traefik/clusterexternalsecret-basicauth.yml), which puts the `basic-auth` `Secret` there.
+2. Copy `middleware-basicauth.yml` from an existing exposed app, changing only `metadata.namespace`, and add it to `resources:`.
+3. Annotate the `Ingress`:
 
 ```yaml
 traefik.ingress.kubernetes.io/router.middlewares: <namespace>-basic-auth@kubernetescrd
 ```
 
-Traefik will not resolve a `Middleware` in another namespace, which is why this is copied rather than shared. Forgetting it publishes the app with no authentication and nothing fails loudly.
+Traefik will not resolve a `Middleware` in another namespace, which is why step 2 is a copy rather than a shared object. Skipping any of the three publishes the app with no authentication, and nothing fails loudly.
 
 ## Getting into the ArgoCD UI
 
