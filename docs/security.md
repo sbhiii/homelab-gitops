@@ -4,7 +4,7 @@
 
 ## The NetworkPolicy layer
 
-Every app in this repo (`argocd`, `cert-manager`, `traefik`) carries an identical `networkpolicy.yml` denying egress from its namespace to `169.254.169.254` — the Hetzner metadata service, which serves the cluster's ServiceAccount token-signing key unauthenticated. The full reasoning for *why* that address matters lives in `homelab`'s [security model](https://github.com/sbhiii/homelab/blob/main/docs/security.md); this repo is where the mitigation is actually declared.
+Every app in this repo (`argocd`, `cert-manager`, `traefik`, `podinfo`) carries an identical `networkpolicy.yml` denying egress from its namespace to `169.254.169.254` — the Hetzner metadata service, which serves the cluster's ServiceAccount token-signing key unauthenticated. The full reasoning for *why* that address matters lives in `homelab`'s [security model](https://github.com/sbhiii/homelab/blob/main/docs/security.md); this repo is where the mitigation is actually declared.
 
 This is **defense in depth, not the primary control.** The primary mitigation is a host-level `iptables` rule installed by `homelab`'s cloud-init script, which covers every namespace uniformly because it operates below Kubernetes entirely. These `NetworkPolicy` objects are the secondary layer, and they have a real limitation the host rule doesn't: **`NetworkPolicy` is namespaced.** `default`, `kube-system`, and any namespace added to this repo without its own copy of `networkpolicy.yml` are not covered. Each policy file says as much in its own comment — read one directly if you're touching this.
 
@@ -36,11 +36,20 @@ That is a deliberate loss of a diagnostic. Reading Traefik's live routing table 
 
 **Getting the dashboard back** means a secured `IngressRoute`, which needs authentication, which needs somewhere to keep a credential. That is the gap described above under secret management. Until it exists, the honest options were an unauthenticated dashboard readable by every workload in the cluster, or no dashboard, and this repo picks no dashboard for the same reason it stopped publishing it externally.
 
+## `podinfo` is served publicly, with no authentication
+
+`apps/podinfo` is a demo app, and its `Ingress` puts it on the public internet at `podinfo.homelab.sbhi.io`. Ports 80 and 443 are open to `0.0.0.0/0` at the Hetzner firewall, because that is how any app here is reached, and nothing in this repo authenticates anything. Anyone who knows the hostname can use it.
+
+That matters more than "it is only a demo" suggests, because podinfo is an HTTP testing toolkit rather than a static page. `/env` returns the pod's environment variables. `/panic` crashes the pod, repeatedly if asked. `/delay/{seconds}` holds connections open on a single-node cluster. None of that exposes anything valuable today, since podinfo holds no data and its environment is stock, but the reachability is real and it is worth knowing before pointing the same pattern at something that does hold data.
+
+It is exposed anyway, deliberately. The alternatives were a Traefik `IPAllowList` middleware restricted to a home IP, which adds a second place to update when that IP rotates, or `kubectl port-forward` only, which is what the Traefik dashboard already does. Neither is worth it for an app whose entire purpose is being reachable and boring. **The next app to be exposed should not inherit this by default.** Basic auth needs a credential, which needs the secret management described above, so the decision is deferred rather than settled.
+
 ## Known limitations
 
 - **`NetworkPolicy` coverage is per-namespace, and incomplete.** `default` and `kube-system` are not protected by anything in this repo. See [The NetworkPolicy layer](#the-networkpolicy-layer) above.
 - **Cross-repo values are copied by hand.** The repo URL, the role ARN and the hosted zone ID are literal strings here, sourced from `homelab`'s Terraform outputs with nothing gluing the two together. See [Getting started](getting-started.md#forking-this-repo-for-your-own-cluster).
 - **No secret management exists yet.** See above.
+- **`podinfo` is reachable by anyone.** No authentication fronts it, and no authentication is currently possible. See [above](#podinfo-is-served-publicly-with-no-authentication).
 - **No CI.** Nothing runs `kubectl kustomize --enable-helm` against every app on a pull request; it's done by hand before merging.
 
 ---
