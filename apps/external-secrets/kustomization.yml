@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yml
+  - networkpolicy.yml
+  - serviceaccount.yml
+  - clustersecretstore.yml
+
+helmCharts:
+  - name: external-secrets
+    releaseName: external-secrets
+    version: 2.10.0
+    repo: https://charts.external-secrets.io
+    namespace: external-secrets
