@@ -1,6 +1,6 @@
 # homelab-gitops
 
-Everything [ArgoCD](https://argo-cd.readthedocs.io/) applies to the [`homelab`](https://github.com/sbhiii/homelab) cluster: the app-of-apps bootstrap, `cert-manager`'s `ClusterIssuer`, Traefik, `podinfo`, and the `NetworkPolicy` layer that's half of a metadata-service mitigation whose other half lives in the infrastructure repo.
+Everything [ArgoCD](https://argo-cd.readthedocs.io/) applies to the [`homelab`](https://github.com/sbhiii/homelab) cluster: the app-of-apps bootstrap, `cert-manager`'s `ClusterIssuer`, Traefik, External Secrets, `podinfo`, and the `NetworkPolicy` layer that's half of a metadata-service mitigation whose other half lives in the infrastructure repo.
 
 Once the cluster exists, **this repo is the only input to it.** Every `Application` here syncs with `automated: {prune: true, selfHeal: true}` — a manual `kubectl edit` against anything ArgoCD owns gets reverted on the next reconcile. If you want to change what runs on the cluster, this is the repo to open a PR against, not `kubectl`.
 
@@ -11,7 +11,7 @@ Once the cluster exists, **this repo is the only input to it.** Every `Applicati
 | **[Architecture](docs/architecture.md)** | The app-of-apps pattern and sync waves, kustomize+helm, ingress conventions, and the one asymmetry in bootstrap order worth knowing about |
 | **[Getting started](docs/getting-started.md)** | Prerequisites and how to fork this repo and point your own cluster at it — including the values that have to be copied in by hand from `homelab`'s Terraform outputs |
 | **[Operations](docs/operations.md)** | Adding an app, validating locally before pushing, reading ArgoCD sync failures |
-| **[Security model](docs/security.md)** | The `NetworkPolicy` layer, how `cert-manager` reaches AWS holding neither a credential nor a Kubernetes permission, and what secret management currently doesn't exist here |
+| **[Security model](docs/security.md)** | The `NetworkPolicy` layer, how `cert-manager` reaches AWS holding neither a credential nor a Kubernetes permission, and where secrets come from |
 
 ## Related repository
 

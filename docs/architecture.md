@@ -11,10 +11,12 @@ flowchart TD
     R["root-app\n(seeded by Terraform, points at bootstrap/)"] --> B1["bootstrap/argocd-app.yml\nsync-wave 1"]
     R --> B2["bootstrap/cert-manager-app.yml\nsync-wave 2"]
     R --> B3["bootstrap/traefik-app.yml\nsync-wave 3"]
+    R --> BE["bootstrap/external-secrets-app.yml\nsync-wave 2"]
     R --> B4["bootstrap/podinfo-app.yml\nsync-wave 4"]
     B1 --> A1["apps/argocd/\ningress + NetworkPolicy"]
     B2 --> A2["apps/cert-manager/\nHelm chart + ClusterIssuer + RBAC + NetworkPolicy"]
     B3 --> A3["apps/traefik/\nHelm chart + NetworkPolicy"]
+    BE --> AE["apps/external-secrets/\nHelm chart + ClusterSecretStore + NetworkPolicy"]
     B4 --> A4["apps/podinfo/\nHelm chart + Ingress + NetworkPolicy"]
 ```
 
@@ -28,6 +30,7 @@ Every file in `bootstrap/` is itself an ArgoCD `Application` pointed at one dire
 |---|---|---|
 | 1 | `apps/argocd` | Adds an Ingress and a NetworkPolicy to the already-running ArgoCD instance (see below) |
 | 2 | `apps/cert-manager` | Installs the CRDs and the `ClusterIssuer` that everything after this needs for TLS |
+| 2 | `apps/external-secrets` | Independent of `cert-manager`, so the same wave. Anything consuming a secret sorts after it |
 | 3 | `apps/traefik` | The ingress controller — needs `cert-manager` to already exist so its own Ingress can request a certificate |
 | 4 | `apps/podinfo` | A demo app. Depends on both: the `ClusterIssuer` from wave 2 to get a certificate, and Traefik's `IngressClass` from wave 3 for its `Ingress` to be picked up and defaulted |
 
@@ -57,7 +60,7 @@ This requires `--enable-helm`, which is set cluster-wide on ArgoCD's own `kustom
 kubectl kustomize --enable-helm apps/cert-manager
 ```
 
-Chart versions are pinned inline in each `kustomization.yml` — that's the only place to bump them. Currently: `cert-manager` `v1.19.4`, `traefik` `39.0.2`, `podinfo` `6.15.0`.
+Chart versions are pinned inline in each `kustomization.yml` — that's the only place to bump them. Currently: `cert-manager` `v1.19.4`, `traefik` `39.0.2`, `podinfo` `6.15.0`, `external-secrets` `2.10.0`.
 
 If a chart ships Helm test hooks, set `skipTests: true` alongside the version. Kustomize does not strip them, so they render as ordinary `Pod` manifests with randomly suffixed names, which means they change on every render and can never converge. `apps/podinfo` sets it for that reason.
 
@@ -80,6 +83,7 @@ bootstrap/
   argocd-app.yml        sync-wave 1 -> apps/argocd
   cert-manager-app.yml  sync-wave 2 -> apps/cert-manager
   traefik-app.yml       sync-wave 3 -> apps/traefik
+  external-secrets-app.yml  sync-wave 2 -> apps/external-secrets
   podinfo-app.yml       sync-wave 4 -> apps/podinfo
 
 apps/
@@ -100,6 +104,14 @@ apps/
     networkpolicy.yml
     kustomization.yml      pulls the traefik/traefik chart; API and dashboard
                            not served, HTTP redirected to HTTPS
+
+  external-secrets/
+    namespace.yml
+    serviceaccount.yml     the identity in the IAM trust policy, carrying the
+                           role ARN annotation the operator reads
+    clustersecretstore.yml points at Parameter Store in sbhi-homelab
+    networkpolicy.yml
+    kustomization.yml      pulls the external-secrets chart, stock values
 
   podinfo/
     namespace.yml

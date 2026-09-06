@@ -13,6 +13,8 @@
    - `argocd.argoproj.io/sync-wave` set to reflect real dependencies — see [Architecture: sync waves](architecture.md#sync-waves-and-why-this-order) for why this isn't cosmetic
 4. **Validate locally before pushing** (see below), then commit and push. `root-app` picks up the new file on its own — nothing needs registering by hand.
 
+**If the chart ships large CRDs, add `ServerSideApply=true`** to the `Application`'s `syncOptions`. Client-side apply stores the whole previous manifest in a `last-applied-configuration` annotation, and annotations cap at 262,144 bytes; a CRD serialising above that fails with `metadata.annotations: Too long` and the Application never syncs. `apps/external-secrets` needs it, `apps/cert-manager` does not, and the difference is only size — measure the JSON, not the rendered YAML, which is several times larger.
+
 ## Validating locally before pushing
 
 ArgoCD only ever sees what's committed, so catching a broken manifest before it merges is entirely on local validation:
